@@ -1,23 +1,53 @@
 #include "GameAnalytics.h"
+
 #if PLATFORM_IOS
 #include "../GA-SDK-IOS/GameAnalyticsCpp.h"
 #elif PLATFORM_ANDROID
 #include "../GA-SDK-ANDROID/GameAnalyticsJNI.h"
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
-#if PLATFORM_LINUX
-#include "Json.h"
-#endif
-#include "../GA-SDK-CPP/GameAnalytics.h"
-//#elif PLATFORM_HTML5
-//#include "Json.h"
+#elif GA_USE_CPP_SDK
+
+    #if PLATFORM_LINUX
+        #include "Json.h"
+    #endif
+
+    #include "../GA-SDK-CPP/GameAnalytics/GameAnalytics.h"
+
+// #elif PLATFORM_HTML5
+// #include "Json.h"
 //#include "../GA-SDK-HTML5/GameAnalytics.h"
 #endif
+
 #include "Misc/EngineVersion.h"
 #include "AnalyticsEventAttribute.h"
 #include "Serialization/JsonWriter.h"
 #include "Serialization/JsonSerializer.h"
 
-#define GA_VERSION TEXT("5.4.4")
+#define GA_VERSION TEXT("5.6.1")
+
+std::string ToStdString(const FString& str)
+{
+    std::string s = TCHAR_TO_UTF8(*str);
+    return s;
+}
+
+std::vector<std::string> ToStringVector(const TArray<FString>& arr)
+{
+    std::vector<std::string> v;
+    v.reserve(arr.Num());
+
+    for (const FString& item : arr)
+    {
+        v.push_back(ToStdString(item));
+    }
+
+    return v;
+}
+
+void PrintList(FString const& msg, const TArray<FString>& list)
+{
+    FString s = FString::Join(list, TEXT(","));
+    UE_LOG(LogGameAnalyticsAnalytics, Display, TEXT("%s(%s)"), *msg, *s);
+}
 
 UGameAnalytics::UGameAnalytics(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -42,11 +72,11 @@ void UGameAnalytics::configureAvailableCustomDimensions01(const TArray<FString>&
         v.push_back(TCHAR_TO_UTF8(*item));
     }
     gameanalytics::jni_configureAvailableCustomDimensions01(v);
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
+#elif GA_USE_CPP_SDK
     gameanalytics::StringVector v;
     for (const FString& item : list)
     {
-        v.add(TCHAR_TO_UTF8(*item));
+        v.push_back(TCHAR_TO_UTF8(*item));
     }
     gameanalytics::GameAnalytics::configureAvailableCustomDimensions01(v);
 // #elif PLATFORM_HTML5
@@ -65,31 +95,18 @@ void UGameAnalytics::configureAvailableCustomDimensions01(const TArray<FString>&
 
 void UGameAnalytics::configureAvailableCustomDimensions02(const TArray<FString>& list)
 {
+    std::vector<std::string> v = ToStringVector(list);
+
 #if WITH_EDITOR
     FString s = FString::Join(list, TEXT(","));
     UE_LOG(LogGameAnalyticsAnalytics, Display, TEXT("UGameAnalytics::configureAvailableCustomDimensions02(%s)"), *s);
 #elif PLATFORM_IOS
-    std::vector<std::string> v;
-    for (const FString& item : list)
-    {
-        v.push_back(TCHAR_TO_UTF8(*item));
-    }
     GameAnalyticsCpp::configureAvailableCustomDimensions02(v);
 #elif PLATFORM_ANDROID
-    std::vector<std::string> v;
-    for (const FString& item : list)
-    {
-        v.push_back(TCHAR_TO_UTF8(*item));
-    }
     gameanalytics::jni_configureAvailableCustomDimensions02(v);
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
-    gameanalytics::StringVector v;
-    for (const FString& item : list)
-    {
-        v.add(TCHAR_TO_UTF8(*item));
-    }
+#elif GA_USE_CPP_SDK
     gameanalytics::GameAnalytics::configureAvailableCustomDimensions02(v);
-// #elif PLATFORM_HTML5
+// // #elif PLATFORM_HTML5
 //     TArray<TSharedPtr<FJsonValue>> array;
 //     for (const FString& s : list)
 //     {
@@ -122,11 +139,11 @@ void UGameAnalytics::configureAvailableCustomDimensions03(const TArray<FString>&
         v.push_back(TCHAR_TO_UTF8(*item));
     }
     gameanalytics::jni_configureAvailableCustomDimensions03(v);
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
+#elif GA_USE_CPP_SDK
     gameanalytics::StringVector v;
     for (const FString& item : list)
     {
-        v.add(TCHAR_TO_UTF8(*item));
+        v.push_back(TCHAR_TO_UTF8(*item));
     }
     gameanalytics::GameAnalytics::configureAvailableCustomDimensions03(v);
 // #elif PLATFORM_HTML5
@@ -162,11 +179,11 @@ void UGameAnalytics::configureAvailableResourceCurrencies(const TArray<FString>&
         v.push_back(TCHAR_TO_UTF8(*item));
     }
     gameanalytics::jni_configureAvailableResourceCurrencies(v);
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
+#elif GA_USE_CPP_SDK
     gameanalytics::StringVector v;
     for (const FString& item : list)
     {
-        v.add(TCHAR_TO_UTF8(*item));
+        v.push_back(TCHAR_TO_UTF8(*item));
     }
     gameanalytics::GameAnalytics::configureAvailableResourceCurrencies(v);
 // #elif PLATFORM_HTML5
@@ -202,11 +219,11 @@ void UGameAnalytics::configureAvailableResourceItemTypes(const TArray<FString>& 
         v.push_back(TCHAR_TO_UTF8(*item));
     }
     gameanalytics::jni_configureAvailableResourceItemTypes(v);
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
+#elif GA_USE_CPP_SDK
     gameanalytics::StringVector v;
     for (const FString& item : list)
     {
-        v.add(TCHAR_TO_UTF8(*item));
+        v.push_back(TCHAR_TO_UTF8(*item));
     }
     gameanalytics::GameAnalytics::configureAvailableResourceItemTypes(v);
 // #elif PLATFORM_HTML5
@@ -231,7 +248,7 @@ void UGameAnalytics::configureBuild(const char *build)
     GameAnalyticsCpp::configureBuild(build);
 #elif PLATFORM_ANDROID
     gameanalytics::jni_configureBuild(build);
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
+#elif GA_USE_CPP_SDK
     gameanalytics::GameAnalytics::configureBuild(build);
 // #elif PLATFORM_HTML5
 //     js_configureBuild(build);
@@ -240,27 +257,25 @@ void UGameAnalytics::configureBuild(const char *build)
 
 void UGameAnalytics::configureAutoDetectAppVersion(bool flag)
 {
-#if WITH_EDITOR
-    UE_LOG(LogGameAnalyticsAnalytics, Display, TEXT("UGameAnalytics::configureAutoDetectAppVersion(%s)"), flag ? TEXT("true") : TEXT("false"));
-#elif PLATFORM_IOS
-    GameAnalyticsCpp::configureAutoDetectAppVersion(flag);
-#elif PLATFORM_ANDROID
-    gameanalytics::jni_configureAutoDetectAppVersion(flag);
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
-//#elif PLATFORM_HTML5
-#endif
+    #if WITH_EDITOR
+        UE_LOG(LogGameAnalyticsAnalytics, Display, TEXT("UGameAnalytics::configureAutoDetectAppVersion(%s)"), flag ? TEXT("true") : TEXT("false"));
+    #elif PLATFORM_IOS
+        GameAnalyticsCpp::configureAutoDetectAppVersion(flag);
+    #elif PLATFORM_ANDROID
+        gameanalytics::jni_configureAutoDetectAppVersion(flag);
+    #endif
 }
 
 void UGameAnalytics::disableDeviceInfo()
 {
-#if WITH_EDITOR
-    UE_LOG(LogGameAnalyticsAnalytics, Display, TEXT("UGameAnalytics::disableDeviceInfo()"));
-#elif PLATFORM_IOS
-#elif PLATFORM_ANDROID
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
-    gameanalytics::GameAnalytics::disableDeviceInfo();
-//#elif PLATFORM_HTML5
-#endif
+    #if WITH_EDITOR
+        UE_LOG(LogGameAnalyticsAnalytics, Display, TEXT("UGameAnalytics::disableDeviceInfo()"));
+    #elif PLATFORM_IOS
+    #elif PLATFORM_ANDROID
+    #elif GA_USE_CPP_SDK
+        gameanalytics::GameAnalytics::disableDeviceInfo();
+    // #elif PLATFORM_HTML5
+    #endif
 }
 
 void UGameAnalytics::configureUserId(const char *userId)
@@ -271,7 +286,7 @@ void UGameAnalytics::configureUserId(const char *userId)
     GameAnalyticsCpp::configureUserId(userId);
 #elif PLATFORM_ANDROID
     gameanalytics::jni_configureUserId(userId);
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
+#elif GA_USE_CPP_SDK
     gameanalytics::GameAnalytics::configureUserId(userId);
 // #elif PLATFORM_HTML5
 //     js_configureUserId(userId);
@@ -286,7 +301,7 @@ void UGameAnalytics::configureSdkGameEngineVersion(const char *gameEngineSdkVers
     GameAnalyticsCpp::configureSdkGameEngineVersion(gameEngineSdkVersion);
 #elif PLATFORM_ANDROID
     gameanalytics::jni_configureSdkGameEngineVersion(gameEngineSdkVersion);
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
+#elif GA_USE_CPP_SDK
     gameanalytics::GameAnalytics::configureSdkGameEngineVersion(gameEngineSdkVersion);
 // #elif PLATFORM_HTML5
 //     js_configureSdkGameEngineVersion(gameEngineSdkVersion);
@@ -301,7 +316,7 @@ void UGameAnalytics::configureGameEngineVersion(const char *gameEngineVersion)
     GameAnalyticsCpp::configureGameEngineVersion(gameEngineVersion);
 #elif PLATFORM_ANDROID
     gameanalytics::jni_configureGameEngineVersion(gameEngineVersion);
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
+#elif GA_USE_CPP_SDK
     gameanalytics::GameAnalytics::configureGameEngineVersion(gameEngineVersion);
 // #elif PLATFORM_HTML5
 //     js_configureGameEngineVersion(gameEngineVersion);
@@ -322,7 +337,7 @@ void UGameAnalytics::initialize(const char *gameKey, const char *gameSecret)
     GameAnalyticsCpp::initialize(gameKey, gameSecret);
 #elif PLATFORM_ANDROID
     gameanalytics::jni_initialize(gameKey, gameSecret);
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
+#elif GA_USE_CPP_SDK
     gameanalytics::GameAnalytics::initialize(gameKey, gameSecret);
 // #elif PLATFORM_HTML5
 //     js_initialize(gameKey, gameSecret);
@@ -347,11 +362,13 @@ void UGameAnalytics::addBusinessEvent(const char *currency, int amount, const ch
     FString fieldsString;
     TSharedRef<TJsonWriter<> > Writer = TJsonWriterFactory<>::Create(&fieldsString);
     FJsonSerializer::Serialize(fields, Writer);
+
 #if !WITH_EDITOR
     GameAnalyticsCpp::addBusinessEvent(currency, amount, itemType, itemId, cartType, receipt, TCHAR_TO_UTF8(*fieldsString), mergeFields);
 #else
     UE_LOG(LogGameAnalyticsAnalytics, Display, TEXT("UGameAnalytics::addBusinessEvent(%s, %d, %s, %s, %s, %s, %s)"), UTF8_TO_TCHAR(currency), amount, UTF8_TO_TCHAR(itemType), UTF8_TO_TCHAR(itemId), UTF8_TO_TCHAR(cartType), UTF8_TO_TCHAR(receipt), *fieldsString);
 #endif
+
 }
 
 void UGameAnalytics::addBusinessEventAndAutoFetchReceipt(const char *currency, int amount, const char *itemType, const char *itemId, const char *cartType)
@@ -415,19 +432,21 @@ void UGameAnalytics::addBusinessEvent(const char *currency, int amount, const ch
 void UGameAnalytics::addBusinessEvent(const char *currency, int amount, const char *itemType, const char *itemId, const char *cartType, const TSharedRef<FJsonObject> &fields, bool mergeFields)
 {
     FString fieldsString;
-    TSharedRef<TJsonWriter<> > Writer = TJsonWriterFactory<>::Create(&fieldsString);
+    TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&fieldsString);
     FJsonSerializer::Serialize(fields, Writer);
+
 #if WITH_EDITOR
     UE_LOG(LogGameAnalyticsAnalytics, Display, TEXT("UGameAnalytics::addBusinessEvent(%s, %d, %s, %s, %s, %s)"), UTF8_TO_TCHAR(currency), amount, UTF8_TO_TCHAR(itemType), UTF8_TO_TCHAR(itemId), UTF8_TO_TCHAR(cartType), *fieldsString);
 #elif PLATFORM_IOS
     GameAnalyticsCpp::addBusinessEvent(currency, amount, itemType, itemId, cartType, NULL, TCHAR_TO_UTF8(*fieldsString), mergeFields);
 #elif PLATFORM_ANDROID
     gameanalytics::jni_addBusinessEvent(currency, amount, itemType, itemId, cartType, TCHAR_TO_UTF8(*fieldsString), mergeFields);
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
+#elif GA_USE_CPP_SDK
     gameanalytics::GameAnalytics::addBusinessEvent(currency, amount, itemType, itemId, cartType, TCHAR_TO_UTF8(*fieldsString), mergeFields);
 // #elif PLATFORM_HTML5
 //     js_addBusinessEvent(currency, amount, itemType, itemId, cartType, "");
 #endif
+
 }
 
 void UGameAnalytics::addResourceEvent(EGAResourceFlowType flowType, const char *currency, float amount, const char *itemType, const char *itemId)
@@ -452,7 +471,7 @@ void UGameAnalytics::addResourceEvent(EGAResourceFlowType flowType, const char *
     GameAnalyticsCpp::addResourceEvent((int)flowType, currency, amount, itemType, itemId, TCHAR_TO_UTF8(*fieldsString), mergeFields);
 #elif PLATFORM_ANDROID
     gameanalytics::jni_addResourceEvent((int)flowType, currency, amount, itemType, itemId, TCHAR_TO_UTF8(*fieldsString), mergeFields);
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
+#elif GA_USE_CPP_SDK
     gameanalytics::GameAnalytics::addResourceEvent((gameanalytics::EGAResourceFlowType)((int)flowType), currency, amount, itemType, itemId, TCHAR_TO_UTF8(*fieldsString), mergeFields);
 // #elif PLATFORM_HTML5
 //     js_addResourceEvent((int)flowType, currency, amount, itemType, itemId, "");
@@ -561,7 +580,7 @@ void UGameAnalytics::addProgressionEvent(EGAProgressionStatus progressionStatus,
     GameAnalyticsCpp::addProgressionEvent((int)progressionStatus, progression01, progression02, progression03, TCHAR_TO_UTF8(*fieldsString), mergeFields);
 #elif PLATFORM_ANDROID
     gameanalytics::jni_addProgressionEvent((int)progressionStatus, progression01, progression02, progression03, TCHAR_TO_UTF8(*fieldsString), mergeFields);
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
+#elif GA_USE_CPP_SDK
     gameanalytics::GameAnalytics::addProgressionEvent((gameanalytics::EGAProgressionStatus)((int)progressionStatus), progression01, progression02, progression03, TCHAR_TO_UTF8(*fieldsString), mergeFields);
 // #elif PLATFORM_HTML5
 //     js_addProgressionEvent((int)progressionStatus, progression01, progression02, progression03, "");
@@ -584,14 +603,15 @@ void UGameAnalytics::addProgressionEvent(EGAProgressionStatus progressionStatus,
     FString fieldsString;
     TSharedRef<TJsonWriter<> > Writer = TJsonWriterFactory<>::Create(&fieldsString);
     FJsonSerializer::Serialize(fields, Writer);
+
 #if WITH_EDITOR
     UE_LOG(LogGameAnalyticsAnalytics, Display, TEXT("UGameAnalytics::addProgressionEvent(%d, %s, %s, %s, %d, %s)"), (int)progressionStatus, UTF8_TO_TCHAR(progression01), UTF8_TO_TCHAR(progression02), UTF8_TO_TCHAR(progression03), score, *fieldsString);
 #elif PLATFORM_IOS
     GameAnalyticsCpp::addProgressionEventWithScore((int)progressionStatus, progression01, progression02, progression03, score, TCHAR_TO_UTF8(*fieldsString), mergeFields);
 #elif PLATFORM_ANDROID
     gameanalytics::jni_addProgressionEventWithScore((int)progressionStatus, progression01, progression02, progression03, score, TCHAR_TO_UTF8(*fieldsString), mergeFields);
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
-    gameanalytics::GameAnalytics::addProgressionEvent((gameanalytics::EGAProgressionStatus)((int)progressionStatus), progression01, progression02, progression03, score, TCHAR_TO_UTF8(*fieldsString), mergeFields);
+#elif GA_USE_CPP_SDK
+    gameanalytics::GameAnalytics::addProgressionEvent((gameanalytics::EGAProgressionStatus)((int)progressionStatus), score, progression01, progression02, progression03, TCHAR_TO_UTF8(*fieldsString), mergeFields);
 // #elif PLATFORM_HTML5
 //     js_addProgressionEventWithScore((int)progressionStatus, progression01, progression02, progression03, score, "");
 #endif
@@ -611,19 +631,21 @@ void UGameAnalytics::addDesignEvent(const char *eventId, const TSharedRef<FJsonO
 void UGameAnalytics::addDesignEvent(const char *eventId, const TSharedRef<FJsonObject> &fields, bool mergeFields)
 {
     FString fieldsString;
-    TSharedRef<TJsonWriter<> > Writer = TJsonWriterFactory<>::Create(&fieldsString);
+    TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&fieldsString);
     FJsonSerializer::Serialize(fields, Writer);
+
 #if WITH_EDITOR
     UE_LOG(LogGameAnalyticsAnalytics, Display, TEXT("UGameAnalytics::addDesignEvent(%s, %s)"), UTF8_TO_TCHAR(eventId), *fieldsString);
 #elif PLATFORM_IOS
     GameAnalyticsCpp::addDesignEvent(eventId, TCHAR_TO_UTF8(*fieldsString), mergeFields);
 #elif PLATFORM_ANDROID
     gameanalytics::jni_addDesignEvent(eventId, TCHAR_TO_UTF8(*fieldsString), mergeFields);
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
+#elif GA_USE_CPP_SDK
     gameanalytics::GameAnalytics::addDesignEvent(eventId, TCHAR_TO_UTF8(*fieldsString), mergeFields);
 // #elif PLATFORM_HTML5
 //     js_addDesignEvent(eventId, "");
 #endif
+
 }
 
 void UGameAnalytics::addDesignEvent(const char *eventId, float value)
@@ -648,7 +670,7 @@ void UGameAnalytics::addDesignEvent(const char *eventId, float value, const TSha
     GameAnalyticsCpp::addDesignEventWithValue(eventId, value, TCHAR_TO_UTF8(*fieldsString), mergeFields);
 #elif PLATFORM_ANDROID
     gameanalytics::jni_addDesignEventWithValue(eventId, value, TCHAR_TO_UTF8(*fieldsString), mergeFields);
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
+#elif GA_USE_CPP_SDK
     gameanalytics::GameAnalytics::addDesignEvent(eventId, value, TCHAR_TO_UTF8(*fieldsString), mergeFields);
 // #elif PLATFORM_HTML5
 //     js_addDesignEventWithValue(eventId, value, "");
@@ -677,7 +699,7 @@ void UGameAnalytics::addErrorEvent(EGAErrorSeverity severity, const char *messag
     GameAnalyticsCpp::addErrorEvent((int)severity, message, TCHAR_TO_UTF8(*fieldsString), mergeFields);
 #elif PLATFORM_ANDROID
     gameanalytics::jni_addErrorEvent((int)severity, message, TCHAR_TO_UTF8(*fieldsString), mergeFields);
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
+#elif GA_USE_CPP_SDK
     gameanalytics::GameAnalytics::addErrorEvent((gameanalytics::EGAErrorSeverity)((int)severity), message, TCHAR_TO_UTF8(*fieldsString), mergeFields);
 // #elif PLATFORM_HTML5
 //     js_addErrorEvent((int)severity, message, "");
@@ -769,9 +791,9 @@ void UGameAnalytics::setEnabledInfoLog(bool flag)
     GameAnalyticsCpp::setEnabledInfoLog(flag);
 #elif PLATFORM_ANDROID
     gameanalytics::jni_setEnabledInfoLog(flag);
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
+#elif GA_USE_CPP_SDK
     gameanalytics::GameAnalytics::setEnabledInfoLog(flag);
-// #elif PLATFORM_HTML5
+// // #elif PLATFORM_HTML5
 //     js_setEnabledInfoLog(flag);
 #endif
 }
@@ -784,9 +806,9 @@ void UGameAnalytics::setEnabledVerboseLog(bool flag)
     GameAnalyticsCpp::setEnabledVerboseLog(flag);
 #elif PLATFORM_ANDROID
     gameanalytics::jni_setEnabledVerboseLog(flag);
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
+#elif GA_USE_CPP_SDK
     gameanalytics::GameAnalytics::setEnabledVerboseLog(flag);
-// #elif PLATFORM_HTML5
+// // #elif PLATFORM_HTML5
 //     js_setEnabledVerboseLog(flag);
 #endif
 }
@@ -799,7 +821,7 @@ void UGameAnalytics::setEnabledManualSessionHandling(bool flag)
     GameAnalyticsCpp::setEnabledManualSessionHandling(flag);
 #elif PLATFORM_ANDROID
     gameanalytics::jni_setEnabledManualSessionHandling(flag);
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
+#elif GA_USE_CPP_SDK
     gameanalytics::GameAnalytics::setEnabledManualSessionHandling(flag);
 // #elif PLATFORM_HTML5
 //     js_setManualSessionHandling(flag);
@@ -814,7 +836,7 @@ void UGameAnalytics::setEnabledErrorReporting(bool flag)
     GameAnalyticsCpp::setEnabledErrorReporting(flag);
 #elif PLATFORM_ANDROID
     gameanalytics::jni_setEnabledErrorReporting(flag);
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
+#elif GA_USE_CPP_SDK
     gameanalytics::GameAnalytics::setEnabledErrorReporting(flag);
 // #elif PLATFORM_HTML5
 //     js_setEnabledErrorReporting(flag);
@@ -829,7 +851,7 @@ void UGameAnalytics::setEnabledEventSubmission(bool flag)
     GameAnalyticsCpp::setEnabledEventSubmission(flag);
 #elif PLATFORM_ANDROID
     gameanalytics::jni_setEnabledEventSubmission(flag);
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
+#elif GA_USE_CPP_SDK
     gameanalytics::GameAnalytics::setEnabledEventSubmission(flag);
 // #elif PLATFORM_HTML5
 //     js_setEventSubmission(flag);
@@ -844,9 +866,9 @@ void UGameAnalytics::setCustomDimension01(const char *customDimension)
     GameAnalyticsCpp::setCustomDimension01(customDimension);
 #elif PLATFORM_ANDROID
     gameanalytics::jni_setCustomDimension01(customDimension);
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
+#elif GA_USE_CPP_SDK
     gameanalytics::GameAnalytics::setCustomDimension01(customDimension);
-// #elif PLATFORM_HTML5
+// // #elif PLATFORM_HTML5
 //     js_setCustomDimension01(customDimension);
 #endif
 }
@@ -859,9 +881,9 @@ void UGameAnalytics::setCustomDimension02(const char *customDimension)
     GameAnalyticsCpp::setCustomDimension02(customDimension);
 #elif PLATFORM_ANDROID
     gameanalytics::jni_setCustomDimension02(customDimension);
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
+#elif GA_USE_CPP_SDK
     gameanalytics::GameAnalytics::setCustomDimension02(customDimension);
-// #elif PLATFORM_HTML5
+// // #elif PLATFORM_HTML5
 //     js_setCustomDimension02(customDimension);
 #endif
 }
@@ -874,9 +896,9 @@ void UGameAnalytics::setCustomDimension03(const char *customDimension)
     GameAnalyticsCpp::setCustomDimension03(customDimension);
 #elif PLATFORM_ANDROID
     gameanalytics::jni_setCustomDimension03(customDimension);
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
+#elif GA_USE_CPP_SDK
     gameanalytics::GameAnalytics::setCustomDimension03(customDimension);
-// #elif PLATFORM_HTML5
+// // #elif PLATFORM_HTML5
 //     js_setCustomDimension03(customDimension);
 #endif
 }
@@ -889,9 +911,9 @@ void UGameAnalytics::startSession()
     GameAnalyticsCpp::startSession();
 #elif PLATFORM_ANDROID
     gameanalytics::jni_startSession();
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
+#elif GA_USE_CPP_SDK
     gameanalytics::GameAnalytics::startSession();
-// #elif PLATFORM_HTML5
+// // #elif PLATFORM_HTML5
 //     js_startSession();
 #endif
 }
@@ -904,9 +926,9 @@ void UGameAnalytics::endSession()
     GameAnalyticsCpp::endSession();
 #elif PLATFORM_ANDROID
     gameanalytics::jni_endSession();
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
+#elif GA_USE_CPP_SDK
     gameanalytics::GameAnalytics::endSession();
-// #elif PLATFORM_HTML5
+// // #elif PLATFORM_HTML5
 //     js_endSession();
 #endif
 }
@@ -915,7 +937,7 @@ void UGameAnalytics::onQuit()
 {
 #if WITH_EDITOR
     UE_LOG(LogGameAnalyticsAnalytics, Display, TEXT("UGameAnalytics::onQuit()"));
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
+#elif GA_USE_CPP_SDK
     gameanalytics::GameAnalytics::onQuit();
 #endif
 }
@@ -937,7 +959,7 @@ FString UGameAnalytics::getRemoteConfigsValueAsString(const char *key)
 	FString result(out);
 	delete[] out;
 	return result;
-#elif PLATFORM_LINUX || PLATFORM_MAC || PLATFORM_WINDOWS
+#elif GA_USE_CPP_SDK
 	return FString(gameanalytics::GameAnalytics::getRemoteConfigsValueAsString(key).data());
 // #elif PLATFORM_HTML5
 //     return FString(js_getRemoteConfigsValueAsString(key));
@@ -961,7 +983,7 @@ FString UGameAnalytics::getRemoteConfigsValueAsString(const char *key, const cha
 	FString result(out);
 	delete[] out;
 	return result;
-#elif PLATFORM_LINUX || PLATFORM_MAC || PLATFORM_WINDOWS
+#elif GA_USE_CPP_SDK
 	return FString(gameanalytics::GameAnalytics::getRemoteConfigsValueAsString(key, defaultValue).data());
 // #elif PLATFORM_HTML5
 //     return FString(js_getRemoteConfigsValueAsStringWithDefaultValue(key, defaultValue));
@@ -977,7 +999,7 @@ bool UGameAnalytics::isRemoteConfigsReady()
     return GameAnalyticsCpp::isRemoteConfigsReady();
 #elif PLATFORM_ANDROID
     return gameanalytics::jni_isRemoteConfigsReady();
-#elif PLATFORM_MAC || PLATFORM_WINDOWS || PLATFORM_LINUX
+#elif GA_USE_CPP_SDK
     return gameanalytics::GameAnalytics::isRemoteConfigsReady();
 // #elif PLATFORM_HTML5
 //     return js_isRemoteConfigsReady();
@@ -1001,7 +1023,7 @@ FString UGameAnalytics::getRemoteConfigsContentAsString()
 	FString result(out);
 	delete[] out;
 	return result;
-#elif PLATFORM_LINUX || PLATFORM_MAC || PLATFORM_WINDOWS
+#elif GA_USE_CPP_SDK
     return FString(gameanalytics::GameAnalytics::getRemoteConfigsContentAsString().data());
 // #elif PLATFORM_HTML5
 //     return FString(js_getRemoteConfigsContentAsString());
@@ -1025,7 +1047,7 @@ FString UGameAnalytics::getABTestingId()
 	FString result(out);
 	delete[] out;
 	return result;
-#elif PLATFORM_LINUX || PLATFORM_MAC || PLATFORM_WINDOWS
+#elif GA_USE_CPP_SDK
     return FString(gameanalytics::GameAnalytics::getABTestingId().data());
 // #elif PLATFORM_HTML5
 //     return FString(js_getABTestingId());
@@ -1049,7 +1071,7 @@ FString UGameAnalytics::getABTestingVariantId()
 	FString result(out);
 	delete[] out;
 	return result;
-#elif PLATFORM_LINUX || PLATFORM_MAC || PLATFORM_WINDOWS
+#elif GA_USE_CPP_SDK
     return FString(gameanalytics::GameAnalytics::getABTestingVariantId().data());
 // #elif PLATFORM_HTML5
 //     return FString(js_getABTestingVariantId());
@@ -1115,7 +1137,7 @@ void UGameAnalytics::AddBusinessEventAndAutoFetchReceipt(const FString& Currency
 void UGameAnalytics::AddBusinessEventAndAutoFetchReceiptWithFields(const FString& Currency, int Amount, const FString& ItemType, const FString& ItemId, const FString& CartType, const TArray<FGameAnalyticsCustomEventField>& CustomFields)
 {
     TSharedRef<FJsonObject> fields = MakeShareable(new FJsonObject());
-    for (auto item : CustomFields)
+    for (auto& item : CustomFields)
     {
         if (item.Value.IsNumeric())
         {
@@ -1348,7 +1370,7 @@ void UGameAnalytics::AddProgressionEventWithOneScoreAndFields(EGAProgressionStat
 void UGameAnalytics::AddProgressionEventWithOneScoreAndMergeFields(EGAProgressionStatus ProgressionStatus, const FString &Progression01, int Score, const TArray<FGameAnalyticsCustomEventField> &CustomFields)
 {
     TSharedRef<FJsonObject> fields = MakeShareable(new FJsonObject());
-    for (auto item : CustomFields)
+    for (auto& item : CustomFields)
     {
         if (item.Value.IsNumeric())
         {
@@ -1371,7 +1393,7 @@ void UGameAnalytics::AddProgressionEventWithOneAndTwo(EGAProgressionStatus Progr
 void UGameAnalytics::AddProgressionEventWithOneTwoAndFields(EGAProgressionStatus ProgressionStatus, const FString& Progression01, const FString& Progression02, const TArray<FGameAnalyticsCustomEventField>& CustomFields)
 {
     TSharedRef<FJsonObject> fields = MakeShareable(new FJsonObject());
-    for (auto item : CustomFields)
+    for (auto& item : CustomFields)
     {
         if (item.Value.IsNumeric())
         {
@@ -1412,7 +1434,7 @@ void UGameAnalytics::AddProgressionEventWithOneTwoAndScore(EGAProgressionStatus 
 void UGameAnalytics::AddProgressionEventWithOneTwoScoreAndFields(EGAProgressionStatus ProgressionStatus, const FString& Progression01, const FString& Progression02, int Score, const TArray<FGameAnalyticsCustomEventField>& CustomFields)
 {
     TSharedRef<FJsonObject> fields = MakeShareable(new FJsonObject());
-    for (auto item : CustomFields)
+    for (auto& item : CustomFields)
     {
         if (item.Value.IsNumeric())
         {
@@ -1430,7 +1452,7 @@ void UGameAnalytics::AddProgressionEventWithOneTwoScoreAndFields(EGAProgressionS
 void UGameAnalytics::AddProgressionEventWithOneTwoScoreAndMergeFields(EGAProgressionStatus ProgressionStatus, const FString &Progression01, const FString &Progression02, int Score, const TArray<FGameAnalyticsCustomEventField> &CustomFields)
 {
     TSharedRef<FJsonObject> fields = MakeShareable(new FJsonObject());
-    for (auto item : CustomFields)
+    for (auto& item : CustomFields)
     {
         if (item.Value.IsNumeric())
         {
@@ -1535,7 +1557,7 @@ void UGameAnalytics::AddDesignEvent(const FString& EventId)
 void UGameAnalytics::AddDesignEventWithFields(const FString& EventId, const TArray<FGameAnalyticsCustomEventField>& CustomFields)
 {
     TSharedRef<FJsonObject> fields = MakeShareable(new FJsonObject());
-    for (auto item : CustomFields)
+    for (auto& item : CustomFields)
     {
         if (item.Value.IsNumeric())
         {
@@ -1553,7 +1575,7 @@ void UGameAnalytics::AddDesignEventWithFields(const FString& EventId, const TArr
 void UGameAnalytics::AddDesignEventWithMergeFields(const FString &EventId, const TArray<FGameAnalyticsCustomEventField> &CustomFields)
 {
     TSharedRef<FJsonObject> fields = MakeShareable(new FJsonObject());
-    for (auto item : CustomFields)
+    for (auto& item : CustomFields)
     {
         if (item.Value.IsNumeric())
         {
@@ -1576,7 +1598,7 @@ void UGameAnalytics::AddDesignEventWithValue(const FString& EventId, float Value
 void UGameAnalytics::AddDesignEventWithValueAndFields(const FString& EventId, float Value, const TArray<FGameAnalyticsCustomEventField>& CustomFields)
 {
     TSharedRef<FJsonObject> fields = MakeShareable(new FJsonObject());
-    for (auto item : CustomFields)
+    for (auto& item : CustomFields)
     {
         if (item.Value.IsNumeric())
         {
@@ -1594,7 +1616,7 @@ void UGameAnalytics::AddDesignEventWithValueAndFields(const FString& EventId, fl
 void UGameAnalytics::AddDesignEventWithValueAndMergeFields(const FString &EventId, float Value, const TArray<FGameAnalyticsCustomEventField> &CustomFields)
 {
     TSharedRef<FJsonObject> fields = MakeShareable(new FJsonObject());
-    for (auto item : CustomFields)
+    for (auto& item : CustomFields)
     {
         if (item.Value.IsNumeric())
         {
@@ -1617,7 +1639,7 @@ void UGameAnalytics::AddErrorEvent(EGAErrorSeverity Severity, const FString& Mes
 void UGameAnalytics::AddErrorEventWithFields(EGAErrorSeverity Severity, const FString& Message, const TArray<FGameAnalyticsCustomEventField>& CustomFields)
 {
     TSharedRef<FJsonObject> fields = MakeShareable(new FJsonObject());
-    for (auto item : CustomFields)
+    for (auto& item : CustomFields)
     {
         if (item.Value.IsNumeric())
         {
@@ -1635,7 +1657,7 @@ void UGameAnalytics::AddErrorEventWithFields(EGAErrorSeverity Severity, const FS
 void UGameAnalytics::AddErrorEventWithMergeFields(EGAErrorSeverity Severity, const FString &Message, const TArray<FGameAnalyticsCustomEventField> &CustomFields)
 {
     TSharedRef<FJsonObject> fields = MakeShareable(new FJsonObject());
-    for (auto item : CustomFields)
+    for (auto& item : CustomFields)
     {
         if (item.Value.IsNumeric())
         {
@@ -1660,7 +1682,7 @@ void UGameAnalytics::AddAdEvent(EGAAdAction action, EGAAdType adType, const FStr
 void UGameAnalytics::AddAdEventWithFields(EGAAdAction action, EGAAdType adType, const FString& adSdkName, const FString& adPlacement, const TArray<FGameAnalyticsCustomEventField>& CustomFields)
 {
     TSharedRef<FJsonObject> fields = MakeShareable(new FJsonObject());
-    for (auto item : CustomFields)
+    for (auto& item : CustomFields)
     {
         if (item.Value.IsNumeric())
         {
@@ -1680,7 +1702,7 @@ void UGameAnalytics::AddAdEventWithFields(EGAAdAction action, EGAAdType adType, 
 void UGameAnalytics::AddAdEventWithMergeFields(EGAAdAction action, EGAAdType adType, const FString &adSdkName, const FString &adPlacement, const TArray<FGameAnalyticsCustomEventField> &CustomFields)
 {
     TSharedRef<FJsonObject> fields = MakeShareable(new FJsonObject());
-    for (auto item : CustomFields)
+    for (auto& item : CustomFields)
     {
         if (item.Value.IsNumeric())
         {
@@ -1707,7 +1729,7 @@ void UGameAnalytics::AddAdEventWithDuration(EGAAdAction action, EGAAdType adType
 void UGameAnalytics::AddAdEventWithDurationAndFields(EGAAdAction action, EGAAdType adType, const FString& adSdkName, const FString& adPlacement, int64 duration, const TArray<FGameAnalyticsCustomEventField>& CustomFields)
 {
     TSharedRef<FJsonObject> fields = MakeShareable(new FJsonObject());
-    for (auto item : CustomFields)
+    for (auto& item : CustomFields)
     {
         if (item.Value.IsNumeric())
         {
@@ -1727,7 +1749,7 @@ void UGameAnalytics::AddAdEventWithDurationAndFields(EGAAdAction action, EGAAdTy
 void UGameAnalytics::AddAdEventWithDurationAndMergeFields(EGAAdAction action, EGAAdType adType, const FString &adSdkName, const FString &adPlacement, int64 duration, const TArray<FGameAnalyticsCustomEventField> &CustomFields)
 {
     TSharedRef<FJsonObject> fields = MakeShareable(new FJsonObject());
-    for (auto item : CustomFields)
+    for (auto& item : CustomFields)
     {
         if (item.Value.IsNumeric())
         {
@@ -1754,7 +1776,7 @@ void UGameAnalytics::AddAdEventWithNoAdReason(EGAAdAction action, EGAAdType adTy
 void UGameAnalytics::AddAdEventWithNoAdReasonAndFields(EGAAdAction action, EGAAdType adType, const FString& adSdkName, const FString& adPlacement, EGAAdError noAdReason, const TArray<FGameAnalyticsCustomEventField>& CustomFields)
 {
     TSharedRef<FJsonObject> fields = MakeShareable(new FJsonObject());
-    for (auto item : CustomFields)
+    for (auto& item : CustomFields)
     {
         if (item.Value.IsNumeric())
         {
@@ -1774,7 +1796,7 @@ void UGameAnalytics::AddAdEventWithNoAdReasonAndFields(EGAAdAction action, EGAAd
 void UGameAnalytics::AddAdEventWithNoAdReasonAndMergeFields(EGAAdAction action, EGAAdType adType, const FString &adSdkName, const FString &adPlacement, EGAAdError noAdReason, const TArray<FGameAnalyticsCustomEventField> &CustomFields)
 {
     TSharedRef<FJsonObject> fields = MakeShareable(new FJsonObject());
-    for (auto item : CustomFields)
+    for (auto& item : CustomFields)
     {
         if (item.Value.IsNumeric())
         {
@@ -1839,4 +1861,81 @@ FString UGameAnalytics::GetABTestingId()
 FString UGameAnalytics::GetABTestingVariantId()
 {
     return getABTestingVariantId();
+}
+
+void UGameAnalytics::EnableSDKInitEvent(bool value)
+{
+    #if WITH_EDITOR
+        UE_LOG(LogGameAnalyticsAnalytics, Display, TEXT("UGameAnalytics::EnableSDKInitEvent %s"), value ? TEXT("true") : TEXT("false"));
+    #elif PLATFORM_ANDROID
+        return gameanalytics::jni_enableSDKInitEvent(value);
+    #elif PLATFORM_IOS
+        return GameAnalyticsCpp::enableSDKInitEvent(value);
+    #elif GA_USE_CPP_SDK
+        return gameanalytics::GameAnalytics::enableSDKInitEvent(value);
+    #else
+        (void)value;
+        UE_LOG(LogGameAnalyticsAnalytics, Warning, TEXT("Health event is not supported on this platform (editor builds are not supported)"));
+    #endif
+}
+
+void UGameAnalytics::EnableFpsHistogram(bool value)
+{
+    #ifdef GAMEANALYTICS_ENABLE_EXPERIMENTAL
+        #if WITH_EDITOR
+            UE_LOG(LogGameAnalyticsAnalytics, Display, TEXT("UGameAnalytics::EnableFpsHistogram %s"), value ? TEXT("true") : TEXT("false"));
+        #elif PLATFORM_ANDROID
+            return gameanalytics::jni_enableFpsHistogram(value);
+        #elif PLATFORM_IOS
+            return GameAnalyticsCpp::enableFpsHistogram(value);
+        #elif GA_USE_CPP_SDK
+            return gameanalytics::GameAnalytics::enableFpsHistogram(value);
+        #else
+            (void)value;
+            UE_LOG(LogGameAnalyticsAnalytics, Warning, TEXT("Health event is not supported on this platform."));
+        #endif
+    #else
+        UE_LOG(LogGameAnalyticsAnalytics, Warning, TEXT("This feature is currently not fully supported for Unreal Engine builds."));
+    #endif
+}
+
+void UGameAnalytics::EnableMemoryHistogram(bool value)
+{
+    #if WITH_EDITOR
+        UE_LOG(LogGameAnalyticsAnalytics, Display, TEXT("UGameAnalytics::EnableMemoryHistogram %s"), value ? TEXT("true") : TEXT("false"));
+    #elif PLATFORM_ANDROID
+        return gameanalytics::jni_enableMemoryHistogram(value);
+    #elif PLATFORM_IOS
+        return GameAnalyticsCpp::enableMemoryHistogram(value);
+    #elif GA_USE_CPP_SDK
+            return gameanalytics::GameAnalytics::enableMemoryHistogram(value);
+    #else
+        (void)value;
+        UE_LOG(LogGameAnalyticsAnalytics, Warning, TEXT("Health event is not supported on this platform."));
+    #endif
+}
+
+void UGameAnalytics::EnableHealthHardwareInfo(bool value)
+{
+    #if WITH_EDITOR
+        UE_LOG(LogGameAnalyticsAnalytics, Display, TEXT("UGameAnalytics::EnableHealthHardwareInfo %s"), value ? TEXT("true") : TEXT("false"));
+    #elif PLATFORM_ANDROID
+        return gameanalytics::jni_enableHealthHardwareInfo(value);
+    #elif PLATFORM_IOS
+        return GameAnalyticsCpp::enableHealthHardwareInfo(value);
+    #else
+        (void)value;
+        UE_LOG(LogGameAnalyticsAnalytics, Warning, TEXT("Health event is not supported on this platform"));
+    #endif
+}
+
+void UGameAnalytics::DisableAdvertisingId(bool value)
+{
+    #if PLATFORM_ANDROID
+        return gameanalytics::jni_setGAIDTracking(!value);
+    #elif PLATFORM_IOS
+        return GameAnalyticsCpp::useRandomizedId(value);
+    #else
+        (void)value;
+    #endif
 }

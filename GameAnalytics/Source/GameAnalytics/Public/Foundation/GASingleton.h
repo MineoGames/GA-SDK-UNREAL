@@ -1,7 +1,9 @@
 #pragma once
 
+
 #include <memory>
 #include <mutex>
+
 
 /*!
 	Template class, that implements the sharedInstance/setSharedInstance idom.
