@@ -1,38 +1,6 @@
-# GA-SDK-UNREAL
-GameAnalytics SDK for the Unreal Engine.
-
-Documentation can be found [here](https://docs.gameanalytics.com/integrations/sdk/unreal).  
-
-If you have any issues or feedback regarding the SDK, please contact our friendly support team [here](https://gameanalytics.com/contact).
-
-> :information_source:
->
-> The Unreal SDK include support for **iOS**, **Android**, **HTML5**, **Windows**, **Linux** and **Mac** platforms
->
-> Requirements:
-> * **Unreal Engine:** 5.3+  &nbsp;
-> * **iOS:** iOS 10+ &nbsp;
-> * **Android:** Android API Level 21 &nbsp;
-> * **Windows:** Minimum specs for UE5 &nbsp;
-> * **Mac:** Minimum specs for UE5 &nbsp;
->   
-   
 Changelog
 ---------
 <!--(CHANGELOG_TOP)-->
-**6.1.2**
-* update GameAnalytics Android SDK dependecy to v7.0.1
-* update GameAnalytics iOS SDK dependency to v5.0.1
-
-**6.1.1**
-* updated GameAnalyticsCpp dependency to 5.1.1
-* bugfix: boolean custom fields
-* fixed win64 toolchain mismatch
-
-**6.1.0**
-* support for unreal 5.7:updated ga-cpp-sdk to v5.1.0:exposed internal GameAnalytics instance to blueprints via `GameAnalytics
-* GetInstance()`:fixed `FGACustomFields` blueprints
-
 **6.0.0**
 * removed static functions, UGameAnalytics is now an object
 * added instance of UGameAnalytics inside UGameAnalyticsModule
